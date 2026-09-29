@@ -83,12 +83,19 @@ med_non  <- median(d$comp_model[d$ai_user == 0], na.rm = TRUE)
 5. **Adoption is hard to predict from professional attributes.** The best model
    reaches AUC `r max(comp$cv_auc, na.rm = TRUE)` (5-fold CV) — better than
    chance, far from decisive.
-6. **The complaint is precision, not capability.**
+6. **Trust tracks usage, not seniority in isolation.** An ordinal
+   (proportional-odds) model on the full five-point trust scale puts daily
+   users at
+   `r round(read_out("22_ordinal_trust_model") %>% dplyr::filter(term == "ai_usageDaily") %>% dplyr::pull(odds_ratio), 1)`x
+   the odds of higher trust versus never-users, while each additional year of
+   experience multiplies those odds by
+   `r round(read_out("22_ordinal_trust_model") %>% dplyr::filter(term == "years_code") %>% dplyr::pull(odds_ratio), 3)`.
+7. **The complaint is precision, not capability.**
    `r scales::percent(read_out("20_ai_frustrations")$pct[1], 1)` name "AI
    solutions that are almost right, but not quite" as a frustration, and
    `r scales::percent(read_out("20_ai_frustrations")$pct[2], 1)` say debugging
    AI-generated code is more time-consuming than writing it themselves.
-7. **Developers split into two clear camps.** k-means finds
+8. **Developers split into two clear camps.** k-means finds
    `r clustering$best_k` clusters: an AI-embracing group
    (`r prof$share[1]`% of respondents, `r scales::percent(prof$ai_daily[1], 1)`
    daily users) and a sceptical group (`r prof$share[2]`%,
@@ -265,6 +272,45 @@ kable(read_out("11_lm_vif"),
       caption = "Variance inflation factors. GVIF^(1/(2*Df)) above ~2.2 signals collinearity.")
 ```
 
+Collinearity is not a problem here (every scaled GVIF is close to 1), but
+**constant variance is**. The residual plot fans out, and a Breusch-Pagan test
+confirms it: BP = `r round(models$bp_test$statistic, 1)`,
+df = `r models$bp_test$parameter`, p `r fmt_p(models$bp_test$p.value)`.
+Ordinary standard errors are therefore wrong — the coefficients stay unbiased,
+but their precision is overstated.
+
+```{r robust}
+rob <- read_out("21_lm_robust_se")
+kable(rob %>%
+        dplyr::arrange(dplyr::desc(se_ratio)) %>%
+        head(10) %>%
+        dplyr::select(term, estimate, se_classical, se_robust, se_ratio,
+                      p_classical, p_robust, flips_at_5pct),
+      caption = "HC3 sandwich standard errors versus the classical ones, ten largest ratios.")
+```
+
+Robust errors are on average `r round(mean(rob$se_ratio), 3)`x the classical
+ones and `r sum(rob$flips_at_5pct)` coefficients change their verdict at the 5%
+level. Every conclusion below is stated against the robust errors.
+
+### Does dropping the non-reporters bias this?
+
+Only `r round(100 * mean(!is.na(d$comp_yearly)), 1)`% of respondents answer the
+compensation question, and the test in H6 shows the response rate depends on
+region. Refitting the model weighted by the inverse probability of reporting —
+so under-reporting groups stand in for their missing peers — is the direct
+check.
+
+```{r ipw}
+ipw <- read_out("25_ipw_sensitivity")
+kable(head(ipw, 8),
+      caption = "Complete-case versus inverse-probability-weighted coefficients, largest shifts first.")
+```
+
+The median absolute shift is
+`r round(median(abs(ipw$difference), na.rm = TRUE), 4)` log points — under half
+a percent of salary. The complete-case results survive the objection.
+
 ## Who uses AI tools?
 
 ```{r logit}
@@ -303,6 +349,49 @@ majority-class baseline, but neither is a strong classifier — adoption is
 driven by things the survey does not measure (team policy, employer tooling,
 personal taste).
 
+## What predicts trust in AI accuracy?
+
+Trust is recorded on a five-point ordered scale. The chi-square tests above
+collapse it to a binary, which throws away the ordering; treating it as a
+number would assume the gap between "somewhat distrust" and "neither" equals
+the gap between "somewhat trust" and "highly trust". A proportional-odds model
+(`MASS::polr`, n = `r format(models$ordinal_n, big.mark = ",")`) needs neither
+assumption.
+
+```{r ordinal}
+ord <- read_out("22_ordinal_trust_model")
+kable(ord %>%
+        dplyr::filter(kind == "predictor") %>%
+        dplyr::arrange(dplyr::desc(abs(estimate))) %>%
+        head(14) %>%
+        dplyr::select(term, odds_ratio, conf_low, conf_high, p_value),
+      caption = "Ordinal logistic regression on trust. Odds ratio > 1 means higher trust.")
+```
+
+```{r ordinal-fig, fig.cap="Predictors of trust in AI accuracy"}
+fig("22_ordinal_trust_effects")
+```
+
+Usage dominates everything else: daily users have
+`r round(ord$odds_ratio[ord$term == "ai_usageDaily"], 1)`x the odds of a higher
+trust rating than people who never use AI tools. Experience pushes the other
+way — each additional year of coding multiplies the odds by
+`r round(ord$odds_ratio[ord$term == "years_code"], 3)`, which compounds to
+roughly `r round(100 * (1 - ord$odds_ratio[ord$term == "years_code"]^10), 0)`%
+lower odds over a decade. The direction of causation is not identified here:
+trusting the tools and using them daily reinforce each other.
+
+```{r po-check}
+po <- read_out("23_proportional_odds_check")
+kable(head(po, 8),
+      caption = "Proportional-odds check: coefficients refitted at each of the four cut-points.")
+```
+
+The assumption mostly holds: `r sum(po$unstable)` of `r nrow(po)` coefficients
+vary more across cut-points than their own size, and they are sparse
+role categories (retired developers, senior executives) rather than the
+variables the conclusions rest on.
+
 # Developer personas
 
 PCA and k-means on the AI-attitude and experience variables, with *k* chosen
@@ -336,6 +425,32 @@ fig("21_cluster_pca")
 kable(read_out("18_cluster_profiles"), caption = "Cluster profiles, original units")
 ```
 
+### How solid is this split?
+
+Two checks, and they disagree in an informative way.
+
+```{r stability-tbl}
+stab <- read_out("24_cluster_stability")
+kable(stab, caption = "Silhouette width and resampling stability")
+```
+
+```{r stability-fig, fig.cap="Cluster stability under resampling"}
+fig("23_cluster_stability")
+```
+
+The **silhouette width is `r stab$silhouette`** — below the 0.25 that Kaufman
+and Rousseeuw call the threshold for "substantial structure". Taken alone, that
+says the two groups are not cleanly separated blobs.
+
+The **adjusted Rand index is `r stab$mean_ari`** across `r stab$runs` runs on
+80% subsamples (minimum `r stab$min_ari`), meaning a re-clustered subsample
+reproduces almost exactly the same partition.
+
+Read together: developers lie on a continuum of AI attitude with no gap in the
+middle, but the line k-means draws through that continuum is in a stable,
+reproducible place. The split is a real description, not a separate-species
+claim — and the validation below shows it predicts variables it never saw.
+
 ```{r validation}
 kable(read_out("19_cluster_validation"),
       caption = "Validation on variables that were not used to build the clusters")
@@ -361,6 +476,13 @@ capture something real rather than an artefact of the algorithm.
   that fit and tests that have adequate cell counts.
 * **Large n.** Statistical significance is nearly guaranteed at this sample
   size; effect sizes are the honest summary.
+* **Missingness is addressed, not eliminated.** The inverse-probability
+  weighting corrects for reporting patterns that the *observed* predictors
+  explain. If people hide their salary for reasons unrelated to region, role
+  or experience — being unusually badly paid, say — that bias remains.
+* **Prediction is weak by design of the data.** AUC 0.66 for adoption is an
+  honest ceiling given what the survey asks: employer policy, team norms and
+  tooling mandates are the obvious missing predictors.
 
 # Reproducing this report
 

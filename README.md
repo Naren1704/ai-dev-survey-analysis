@@ -104,7 +104,7 @@ ai-dev-survey-analysis/
 │   └── sample/               # 500-row sample of the cleaned data (committed)
 ├── outputs/
 │   ├── figures/              # 22 PNGs
-│   ├── tables/               # 20 CSV result tables
+│   ├── tables/               # 22 CSV result tables
 │   └── models/               # fitted model objects (not committed)
 └── reports/
     ├── final_report.Rmd

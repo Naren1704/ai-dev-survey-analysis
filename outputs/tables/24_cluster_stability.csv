@@ -1,0 +1,2 @@
+runs,mean_ari,sd_ari,min_ari,silhouette
+25,0.998,0.002,0.993,0.184

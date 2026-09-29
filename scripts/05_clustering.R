@@ -9,6 +9,7 @@
 # ---------------------------------------------------------------------------
 
 source("R/setup.R")
+source("R/stats.R")
 suppressPackageStartupMessages(library(cluster))
 
 d <- readRDS(PATHS$clean_rds)
@@ -90,6 +91,18 @@ save_fig(sil_plot, "19_kmeans_silhouette", width = 6.5, height = 4.5)
 best_k <- k_search$k[which.max(k_search$silhouette)]
 message("k chosen by silhouette: ", best_k)
 
+# Honesty about what that silhouette means. Kaufman and Rousseeuw's rule of
+# thumb reads 0.71-1.00 as strong structure, 0.51-0.70 as reasonable,
+# 0.26-0.50 as weak, and anything at or below 0.25 as "no substantial
+# structure found". This solution sits in the last band, so the split is a
+# useful description of a continuum rather than proof of separate groups -
+# which is exactly why it is tested for stability and validated against
+# variables it never saw.
+best_sil <- max(k_search$silhouette)
+cat("\nBest average silhouette width:", round(best_sil, 3),
+    if (best_sil <= 0.25) "- below the 0.25 'substantial structure' threshold\n"
+    else "\n")
+
 # --- Final clustering ------------------------------------------------------
 km <- kmeans(X, centers = best_k, nstart = 50, iter.max = 100)
 feat$cluster <- factor(km$cluster)
@@ -138,6 +151,50 @@ pca_plot <- tibble(pc1 = pca$x[, 1], pc2 = pca$x[, 2], cluster = feat$cluster) %
        y = paste0("PC2 (", round(100 * var_explained[2], 1), "%)"),
        colour = "Cluster")
 save_fig(pca_plot, "21_cluster_pca", width = 7, height = 5.5)
+
+# --- Is the split stable, or an artefact of this particular sample? --------
+# 25 runs on 80% subsamples. Each run is compared with the full-data solution
+# on the rows they share, using the adjusted Rand index (1 = identical
+# partition, 0 = chance agreement). A weak silhouette with high stability
+# means the boundary is fuzzy but the grouping is real.
+set.seed(SEED)
+stability <- map_dbl(1:25, function(i) {
+  idx <- sample(nrow(X), floor(0.8 * nrow(X)))
+  km_sub <- kmeans(X[idx, ], centers = best_k, nstart = 25, iter.max = 50)
+  adjusted_rand(km_sub$cluster, km$cluster[idx])
+})
+
+stability_tbl <- tibble(
+  runs = length(stability),
+  mean_ari = round(mean(stability), 3),
+  sd_ari = round(sd(stability), 3),
+  min_ari = round(min(stability), 3),
+  silhouette = round(best_sil, 3)
+)
+save_table(stability_tbl, "24_cluster_stability")
+cat("\nSubsample stability (adjusted Rand index over",
+    length(stability), "runs): mean", round(mean(stability), 3),
+    "min", round(min(stability), 3), "\n")
+
+# Every run lands within a whisker of 1, so a histogram over the full 0-1
+# range would show a single invisible spike. One point per run on a zoomed
+# axis shows both the level and the spread.
+stability_plot <- tibble(run = seq_along(stability), ari = stability) %>%
+  ggplot(aes(x = run, y = ari)) +
+  geom_hline(yintercept = 1, linetype = "dashed", colour = "grey60") +
+  geom_hline(yintercept = mean(stability), colour = PALETTE[4]) +
+  geom_point(colour = PALETTE[3], size = 2.5) +
+  scale_y_continuous(limits = c(min(0.95, min(stability)), 1.002),
+                     breaks = scales::pretty_breaks(5)) +
+  annotate("text", x = 1, y = mean(stability), hjust = 0, vjust = 1.6,
+           size = 3.2, colour = PALETTE[4],
+           label = paste0("mean = ", round(mean(stability), 3))) +
+  labs(title = "Cluster stability under resampling",
+       subtitle = paste0("Adjusted Rand index against the full-data solution; ",
+                         length(stability), " runs on 80% subsamples"),
+       x = "Run", y = "Adjusted Rand index",
+       caption = "Stack Overflow Developer Survey 2025")
+save_fig(stability_plot, "23_cluster_stability", width = 7.5, height = 4.5)
 
 # --- Do the personas differ on variables not used to build them? -----------
 # A sanity check: salary and region were excluded from the feature matrix.

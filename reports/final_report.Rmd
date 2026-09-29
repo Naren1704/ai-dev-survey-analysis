@@ -1,0 +1,352 @@
+---
+title: "Do developers trust AI? Adoption, attitudes and pay in the 2025 Stack Overflow Developer Survey"
+subtitle: "A complex data analysis in R"
+date: "`r format(Sys.Date(), '%d %B %Y')`"
+output:
+  html_document:
+    toc: true
+    toc_float: true
+    number_sections: true
+    theme: flatly
+    code_folding: hide
+    fig_width: 8
+    fig_height: 5
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE, warning = FALSE, message = FALSE)
+knitr::opts_knit$set(root.dir = normalizePath(".."))
+```
+
+```{r load, include=FALSE}
+source("R/setup.R")
+source("R/stats.R")
+library(knitr)
+
+d          <- readRDS(PATHS$clean_rds)
+models     <- readRDS(file.path(PATHS$models, "models.rds"))
+clustering <- readRDS(file.path(PATHS$models, "clustering.rds"))
+
+read_out <- function(name) readr::read_csv(file.path(PATHS$tables, paste0(name, ".csv")),
+                                           show_col_types = FALSE)
+# Absolute paths, because pandoc resolves image links relative to the .Rmd
+# file while knitr chunks run from the project root.
+fig <- function(name) knitr::include_graphics(
+  normalizePath(file.path("outputs", "figures", paste0(name, ".png"))))
+```
+
+# Introduction
+
+AI coding assistants moved from novelty to default tooling in about three
+years. This report uses the **Stack Overflow Annual Developer Survey 2025**
+(`r format(nrow(d), big.mark = ",")` professional developers after cleaning,
+`r n_distinct(d$country, na.rm = TRUE)` countries) to ask who actually adopts
+them, who trusts them, and whether any of it shows up in pay.
+
+## Research questions
+
+| # | Question | Method |
+|---|----------|--------|
+| RQ1 | Does AI tool adoption depend on developer role and experience? | Chi-square, logistic regression |
+| RQ2 | Do AI users earn more than non-users? | Welch t-test, Wilcoxon, linear regression |
+| RQ3 | Does trust in AI accuracy change with experience? | Chi-square, test for trend |
+| RQ4 | Can AI adoption be predicted from professional attributes? | Logistic regression vs random forest |
+| RQ5 | Are there distinct developer "personas" in AI attitudes? | PCA, k-means |
+
+## Key findings
+
+```{r headline, include=FALSE}
+adopt <- read_out("03_adoption_by_experience")
+comp  <- read_out("13_model_comparison")
+prof  <- read_out("18_cluster_profiles")
+val   <- read_out("19_cluster_validation")
+med_user <- median(d$comp_model[d$ai_user == 1], na.rm = TRUE)
+med_non  <- median(d$comp_model[d$ai_user == 0], na.rm = TRUE)
+```
+
+1. **Adoption is near-universal but shallow in trust.**
+   `r round(100 * mean(d$ai_user, na.rm = TRUE), 1)`% use AI tools and
+   `r round(100 * mean(d$ai_daily, na.rm = TRUE), 1)`% use them daily, yet only
+   `r round(100 * mean(d$ai_trusts, na.rm = TRUE), 1)`% say they trust the
+   accuracy of what those tools produce.
+2. **Both adoption and trust fall as experience rises.** Adoption drops from
+   `r scales::percent(adopt$adoption[1], 0.1)` among developers with 0-2 years
+   of experience to `r scales::percent(adopt$adoption[nrow(adopt)], 0.1)` among
+   those with 20+ years (chi-square test for trend, p < 0.001).
+3. **AI users earn slightly *less*, not more.** Median
+   `r scales::dollar(med_user)` versus `r scales::dollar(med_non)`
+   (Cohen's d = -0.16). The gap is a small effect and is explained by
+   experience and region rather than by AI use itself.
+4. **Pay is mostly explained by geography, experience and education.** The
+   linear model reaches R² = `r round(broom::glance(models$lm)$r.squared, 3)`;
+   AI use contributes almost nothing once those are in the model.
+5. **Adoption is hard to predict from professional attributes.** The best model
+   reaches AUC `r max(comp$cv_auc, na.rm = TRUE)` (5-fold CV) — better than
+   chance, far from decisive.
+6. **Developers split into two clear camps.** k-means finds
+   `r clustering$best_k` clusters: an AI-embracing group
+   (`r prof$share[1]`% of respondents, `r scales::percent(prof$ai_daily[1], 1)`
+   daily users) and a sceptical group (`r prof$share[2]`%,
+   `r scales::percent(prof$ai_daily[2], 1)` daily users). The sceptics have a
+   higher median salary (`r scales::dollar(val$median_salary[2])` versus
+   `r scales::dollar(val$median_salary[1])`) — salary was never used to build
+   the clusters.
+
+## Data and licence
+
+Stack Overflow Annual Developer Survey 2025, CC BY-SA 4.0,
+<https://survey.stackoverflow.co/>. The raw file holds 172 columns; the
+cleaning script keeps `r ncol(d)` after feature engineering and restricts the
+sample to people who write code professionally.
+
+# Data preparation
+
+The raw export needs real work before it can be analysed:
+
+* **Types.** `YearsCode` is text because of the answers "Less than 1 year" and
+  "More than 50 years"; `Age` is a bucket, converted to a midpoint for
+  modelling while the ordered factor is kept for plots.
+* **Collapsing.** Education (8 levels), organisation size (9), and country
+  (180+) are collapsed to 4, 3 and 6 categories. Rare roles and industries are
+  lumped with `fct_lump_min()`. Without this, most tests would be driven by
+  categories with a handful of respondents.
+* **Salary.** `ConvertedCompYearly` contains values from $1 to tens of millions.
+  Values below $1,000 or above the 99th percentile are flagged
+  (`comp_outlier`) rather than deleted, and the models use `log(salary)`
+  because the distribution is log-normal.
+* **Multi-select columns.** `LanguageHaveWorkedWith` and
+  `AIModelsHaveWorkedWith` hold semicolon-separated lists; they are split with
+  `separate_rows()` for counting and turned into breadth counts
+  (`n_languages`, `n_ai_models`) for modelling.
+* **Likert scales.** Sentiment and trust become ordered factors *and* numeric
+  scores, so they can be both plotted as categories and correlated.
+
+```{r missingness, fig.cap="Missing values by variable"}
+fig("01_missingness")
+```
+
+Missingness is concentrated in the optional free-text and compensation fields,
+which is why every model states the row count it actually fits on.
+
+# Exploratory analysis
+
+```{r overview}
+kable(read_out("02_overview"), caption = "Sample at a glance")
+```
+
+## Compensation
+
+```{r salary, fig.cap="Compensation distribution"}
+fig("02_salary_distribution")
+```
+
+```{r salary-region, fig.cap="Compensation by region"}
+fig("03_salary_by_region")
+```
+
+## AI adoption and attitudes
+
+```{r usage, fig.cap="AI tool usage frequency"}
+fig("04_ai_usage")
+```
+
+```{r adoption-exp, fig.cap="Adoption by experience"}
+fig("05_adoption_by_experience")
+```
+
+```{r trust-exp, fig.cap="Trust by experience"}
+fig("06_trust_by_experience")
+```
+
+```{r sent-trust, fig.cap="Sentiment vs trust"}
+fig("07_sentiment_vs_trust")
+```
+
+Sentiment and trust are related but far from identical: plenty of developers
+are favourable towards AI while still distrusting its output. That gap is the
+most interesting single fact in the dataset.
+
+## Technology use
+
+```{r langs, fig.cap="Most used languages"}
+fig("09_top_languages")
+```
+
+```{r models, fig.cap="Most used AI models"}
+fig("10_top_ai_models")
+```
+
+```{r words, fig.cap="Free-text themes"}
+fig("11_ai_open_words")
+```
+
+## Correlations
+
+```{r cor, fig.cap="Correlation heatmap"}
+fig("08_correlation_heatmap")
+```
+
+# Statistical inference
+
+Every test reports an assumption check, an effect size and a confidence
+interval where one exists. Because five families of hypotheses are tested,
+p-values are adjusted with the Holm method.
+
+```{r tests}
+kable(read_out("09_hypothesis_tests"), caption = "Hypothesis test results")
+```
+
+```{r tukey}
+kable(read_out("09b_tukey_education"),
+      caption = "Tukey HSD: pairwise education comparisons on log(salary)")
+```
+
+A note on interpretation: with tens of thousands of respondents, almost
+anything reaches statistical significance. The effect sizes matter more than
+the p-values, which is why Cramer's V, Cohen's d and eta-squared are reported
+alongside every test.
+
+# Regression modelling
+
+## What predicts salary?
+
+```{r lm-coef}
+kable(read_out("10_lm_coefficients") %>%
+        dplyr::filter(term != "(Intercept)") %>%
+        dplyr::arrange(dplyr::desc(abs(estimate))) %>%
+        head(15),
+      caption = "Linear model on log(salary): largest 15 effects. `pct_effect` is the percentage change in salary.")
+```
+
+```{r lm-r2}
+gl <- broom::glance(models$lm)
+cat("R-squared:", round(gl$r.squared, 3),
+    "| Adjusted:", round(gl$adj.r.squared, 3),
+    "| Observations:", gl$nobs)
+```
+
+```{r lm-effects, fig.cap="Largest salary effects"}
+fig("14_lm_effects")
+```
+
+### Diagnostics
+
+```{r lm-resid, fig.cap="Residuals vs fitted"}
+fig("12_lm_residuals")
+```
+
+```{r lm-qq, fig.cap="Q-Q plot"}
+fig("13_lm_qq")
+```
+
+```{r vif}
+kable(read_out("11_lm_vif"),
+      caption = "Variance inflation factors. GVIF^(1/(2*Df)) above ~2.2 signals collinearity.")
+```
+
+## Who uses AI tools?
+
+```{r logit}
+kable(read_out("12_logit_odds_ratios") %>%
+        dplyr::filter(term != "(Intercept)") %>%
+        dplyr::arrange(dplyr::desc(abs(log(odds_ratio)))) %>%
+        head(15),
+      caption = "Logistic regression, odds ratios (>1 means more likely to use AI tools)")
+```
+
+```{r comparison}
+kable(read_out("13_model_comparison"),
+      caption = "Held-out performance. `cv_auc` is the mean AUC over 5 folds.")
+```
+
+Four in five respondents use AI tools, so a model that predicts "user" for
+everyone already scores
+`r scales::percent(read_out("13_model_comparison")$accuracy[3], 0.1)` accuracy
+while being useless. The decision threshold is therefore tuned on the training
+set (Youden's J) rather than left at 0.5, which trades raw accuracy for a model
+that actually separates the two groups — and makes AUC, not accuracy, the
+metric worth reading in that table.
+
+```{r roc, fig.cap="ROC curves"}
+fig("15_roc_curves")
+```
+
+```{r importance, fig.cap="Random forest importance"}
+fig("16_rf_importance")
+```
+
+The two models land close together, which is itself the finding: the
+relationship between professional attributes and AI adoption is mostly
+additive, so the random forest's extra flexibility buys little. Both beat the
+majority-class baseline, but neither is a strong classifier — adoption is
+driven by things the survey does not measure (team policy, employer tooling,
+personal taste).
+
+# Developer personas
+
+PCA and k-means on the AI-attitude and experience variables, with *k* chosen
+by average silhouette width.
+
+```{r scree, fig.cap="PCA scree plot"}
+fig("17_pca_scree")
+```
+
+```{r loadings}
+kable(read_out("16_pca_loadings"), caption = "PCA loadings, first three components")
+```
+
+```{r elbow, fig.cap="Elbow plot"}
+fig("18_kmeans_elbow")
+```
+
+```{r sil, fig.cap="Silhouette widths"}
+fig("19_kmeans_silhouette")
+```
+
+```{r centres, fig.cap="Cluster centres"}
+fig("20_cluster_centres")
+```
+
+```{r cluster-pca, fig.cap="Clusters in PC space"}
+fig("21_cluster_pca")
+```
+
+```{r profiles}
+kable(read_out("18_cluster_profiles"), caption = "Cluster profiles, original units")
+```
+
+```{r validation}
+kable(read_out("19_cluster_validation"),
+      caption = "Validation on variables that were not used to build the clusters")
+```
+
+The validation table is the point of this section: salary, remote work and
+organisation size were deliberately excluded from the clustering features, so
+differences across clusters on those variables are evidence that the personas
+capture something real rather than an artefact of the algorithm.
+
+# Limitations
+
+* **Self-selected sample.** Respondents are Stack Overflow visitors who chose
+  to answer; they over-represent North America and Europe, so nothing here
+  generalises to the whole developer population.
+* **Cross-sectional.** Every association is correlational. Higher earners
+  using AI more does not mean AI raised anyone's salary; both are downstream of
+  employer, seniority and country.
+* **Converted compensation.** `ConvertedCompYearly` depends on exchange rates
+  and self-reported figures, and the currency conversion date is not exposed.
+* **Collapsed categories.** Grouping 180 countries into 6 regions and 8
+  education levels into 4 loses real variation. It trades precision for models
+  that fit and tests that have adequate cell counts.
+* **Large n.** Statistical significance is nearly guaranteed at this sample
+  size; effect sizes are the honest summary.
+
+# Reproducing this report
+
+```bash
+Rscript scripts/00_setup.R     # install packages, download data (~141 MB)
+Rscript scripts/run_all.R      # clean, analyse, model, render this report
+```
+
+All randomness is seeded (`SEED = 42` in `R/setup.R`), so reruns reproduce the
+same splits, folds and clusters.

@@ -1,0 +1,8 @@
+hypothesis,test,statistic,df,p_value,effect_size,n,p_adjusted,significant
+H1: AI adoption depends on developer role,Chi-square test of independence,972.162,25,< 0.001,Cramer's V = 0.177,31057,< 0.001,TRUE
+H2: Compensation differs between AI users and non-users,Welch two-sample t-test on log(salary),-10.845,7487.993,< 0.001,"Cohen's d = -0.164; 95% CI on log-diff [-0.201, -0.14]",21842,< 0.001,TRUE
+H2b: Same comparison without the normality assumption,Wilcoxon rank-sum test,34442132,NA,< 0.001,rank-biserial r = -0.068,21842,< 0.001,TRUE
+H3: Compensation differs across education levels,One-way ANOVA on log(salary),82.573,3,< 0.001,eta squared = 0.011,22254,< 0.001,TRUE
+H4: Trust in AI accuracy depends on experience,Chi-square test of independence,465.754,4,< 0.001,Cramer's V = 0.124,30447,< 0.001,TRUE
+H4b: Trust changes monotonically with experience,Chi-square test for trend in proportions,403.735,1,< 0.001,NA,30447,< 0.001,TRUE
+H5: Job satisfaction differs for daily AI users,Wilcoxon rank-sum test,80974594,NA,< 0.001,rank-biserial r = 0.043,24918,< 0.001,TRUE

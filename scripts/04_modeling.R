@@ -2,8 +2,10 @@
 # 04 - Regression and machine learning
 #
 #   A. Linear regression: what predicts log(salary)?          (lm + diagnostics)
+#   A2. The same model with heteroskedasticity-robust standard errors (sandwich)
 #   B. Logistic regression: who uses AI tools?                (glm)
 #   C. Random forest on the same target, compared on held-out data (ranger)
+#   D. Ordinal logistic regression on the five-level trust scale (MASS::polr)
 #
 #   Rscript scripts/04_modeling.R
 # ---------------------------------------------------------------------------
@@ -13,6 +15,8 @@ source("R/stats.R")
 suppressPackageStartupMessages({
   library(ranger)
   library(car)
+  library(sandwich)
+  library(lmtest)
 })
 
 d <- readRDS(PATHS$clean_rds)
@@ -90,6 +94,91 @@ effect_plot <- coef_tbl %>%
        subtitle = "Linear model coefficients on log(salary), 95% CI",
        x = "Effect on log(salary)", y = NULL)
 save_fig(effect_plot, "14_lm_effects", height = 6)
+
+# ===========================================================================
+# A2. Heteroskedasticity-robust standard errors
+# ===========================================================================
+# The residual plot fans out: salary variance is larger in high-paying regions
+# than in low-paying ones, which violates the constant-variance assumption
+# behind the ordinary standard errors. The coefficients stay unbiased, so the
+# fix is HC3 sandwich errors rather than a different model. A Breusch-Pagan
+# test states the problem formally.
+bp <- bptest(fit_lm)
+cat("\nBreusch-Pagan test for heteroskedasticity: BP =", round(bp$statistic, 1),
+    ", df =", bp$parameter, ", p =", fmt_p(bp$p.value), "\n")
+
+robust <- coeftest(fit_lm, vcov. = vcovHC(fit_lm, type = "HC3"))
+
+robust_tbl <- tibble(
+  term          = rownames(robust),
+  estimate      = robust[, "Estimate"],
+  se_classical  = summary(fit_lm)$coefficients[, "Std. Error"],
+  se_robust     = robust[, "Std. Error"],
+  p_classical   = summary(fit_lm)$coefficients[, "Pr(>|t|)"],
+  p_robust      = robust[, "Pr(>|t|)"]
+) %>%
+  mutate(
+    se_ratio = se_robust / se_classical,
+    # Coefficients whose verdict changes once the errors are corrected.
+    flips_at_5pct = (p_classical < 0.05) != (p_robust < 0.05),
+    across(where(is.numeric), ~ round(.x, 4))
+  )
+
+save_table(robust_tbl, "21_lm_robust_se")
+cat("Robust SEs are on average", round(mean(robust_tbl$se_ratio), 3),
+    "times the classical ones;",
+    sum(robust_tbl$flips_at_5pct), "coefficient(s) change significance.\n")
+
+# ===========================================================================
+# A3. Does dropping the non-reporters bias the salary model?
+# ===========================================================================
+# Half the sample skips the compensation question, and script 03 shows the
+# response rate varies by region. Complete-case regression is only unbiased if
+# reporting is unrelated to salary given the predictors. This refits the model
+# weighted by the inverse probability of reporting: respondents from
+# under-reporting groups stand in for their missing peers. If the coefficients
+# barely move, the complete-case results survive the objection.
+response_data <- d %>%
+  select(comp_yearly, years_code, age_numeric, education, region, remote_work,
+         org_size, dev_type, ai_user, n_languages) %>%
+  mutate(reports = as.integer(!is.na(comp_yearly))) %>%
+  select(-comp_yearly) %>%
+  drop_na(-reports) %>%
+  mutate(education = factor(education, ordered = FALSE))
+
+fit_response <- glm(reports ~ years_code + age_numeric + education + region +
+                      remote_work + org_size + dev_type + ai_user + n_languages,
+                    data = response_data, family = binomial())
+
+# Weights are trimmed at the 99th percentile: a handful of very small
+# predicted probabilities would otherwise dominate the fit.
+ipw_data <- lm_data %>%
+  mutate(p_report = predict(fit_response, newdata = ., type = "response"),
+         weight   = 1 / p_report,
+         weight   = pmin(weight, quantile(weight, 0.99)))
+
+fit_ipw <- lm(formula(fit_lm), data = ipw_data, weights = ipw_data$weight)
+
+ipw_compare <- broom::tidy(fit_lm) %>%
+  select(term, complete_case = estimate) %>%
+  left_join(broom::tidy(fit_ipw) %>% select(term, weighted = estimate),
+            by = "term") %>%
+  mutate(
+    difference = weighted - complete_case,
+    pct_of_effect = round(100 * difference / complete_case, 1),
+    across(where(is.numeric), ~ round(.x, 4))
+  ) %>%
+  arrange(desc(abs(difference)))
+
+save_table(ipw_compare, "25_ipw_sensitivity")
+
+cat("\n=== A3. Inverse-probability-weighted sensitivity check ===\n")
+cat("Largest coefficient shifts when non-reporters are weighted back in:\n")
+print(head(ipw_compare, 8), width = Inf)
+cat("Median absolute shift:",
+    round(median(abs(ipw_compare$difference), na.rm = TRUE), 4),
+    "log points; R squared weighted:",
+    round(summary(fit_ipw)$r.squared, 3), "\n")
 
 # ===========================================================================
 # B/C. Predicting AI tool adoption
@@ -242,9 +331,115 @@ imp_plot <- imp_tbl %>%
        x = "Mean decrease in accuracy", y = NULL)
 save_fig(imp_plot, "16_rf_importance")
 
+# ===========================================================================
+# D. Ordinal logistic regression: what predicts trust in AI accuracy?
+# ===========================================================================
+# Trust is measured on a five-point ordered scale. Collapsing it to a binary
+# (as the chi-square tests in script 03 do) throws away the ordering, and
+# treating it as a number assumes the gaps between categories are equal.
+# A proportional-odds model uses the ordering without either assumption.
+ord_data <- d %>%
+  select(ai_trust, years_code, age_numeric, education, region, remote_work,
+         org_size, dev_type, job_sat, n_languages, ai_usage) %>%
+  drop_na() %>%
+  mutate(
+    education = factor(education, ordered = FALSE),
+    # Unordered, so each usage level gets its own interpretable coefficient
+    # instead of a polynomial contrast.
+    ai_usage  = factor(as.character(ai_usage),
+                       levels = c("Never", "Monthly/rarely", "Weekly", "Daily"))
+  )
+
+message("ordinal model rows: ", nrow(ord_data))
+
+fit_ord <- MASS::polr(
+  ai_trust ~ years_code + age_numeric + education + region + remote_work +
+    org_size + dev_type + job_sat + n_languages + ai_usage,
+  data = ord_data, Hess = TRUE, method = "logistic"
+)
+
+cat("\n=== D. Ordinal logistic regression on trust in AI accuracy ===\n")
+print(summary(fit_ord))
+
+# polr reports no p-values; the Wald approximation supplies them.
+ord_coef <- as_tibble(coef(summary(fit_ord)), rownames = "term") %>%
+  rename(estimate = Value, se = `Std. Error`, t_value = `t value`) %>%
+  mutate(
+    p_value    = 2 * pnorm(abs(t_value), lower.tail = FALSE),
+    odds_ratio = exp(estimate),
+    conf_low   = exp(estimate - 1.96 * se),
+    conf_high  = exp(estimate + 1.96 * se),
+    # The last rows are the cut-points between adjacent trust levels, not
+    # predictors, so they are labelled as such.
+    kind = if_else(str_detect(term, "\\|"), "cut-point", "predictor"),
+    across(where(is.numeric), ~ round(.x, 4))
+  )
+save_table(ord_coef, "22_ordinal_trust_model")
+
+cat("\nLargest effects on trust (odds ratio, >1 = more trusting):\n")
+print(ord_coef %>%
+        filter(kind == "predictor") %>%
+        slice_max(abs(estimate), n = 10) %>%
+        select(term, odds_ratio, conf_low, conf_high, p_value),
+      width = Inf)
+
+# --- Proportional-odds assumption -----------------------------------------
+# The model assumes one coefficient per predictor holds at every cut-point.
+# Fitting a separate binary logit at each of the four cut-points and comparing
+# the coefficients is the informal version of a Brant test (which would need
+# another package).
+cut_models <- map_dfr(1:4, function(k) {
+  y <- as.integer(as.integer(ord_data$ai_trust) > k)
+  m <- glm(y ~ years_code + age_numeric + education + region + remote_work +
+             org_size + dev_type + job_sat + n_languages + ai_usage,
+           data = ord_data, family = binomial())
+  tibble(cutpoint = k, term = names(coef(m)), estimate = unname(coef(m)))
+})
+
+po_check <- cut_models %>%
+  filter(term != "(Intercept)") %>%
+  group_by(term) %>%
+  summarise(
+    mean_estimate = mean(estimate),
+    sd_estimate   = sd(estimate),
+    # A coefficient that swings more than it is large is not constant across
+    # cut-points, which is what the model assumes.
+    unstable      = sd_estimate > abs(mean_estimate),
+    .groups = "drop"
+  ) %>%
+  arrange(desc(sd_estimate)) %>%
+  mutate(across(where(is.numeric), ~ round(.x, 4)))
+
+save_table(po_check, "23_proportional_odds_check")
+cat("\nProportional-odds check:",
+    sum(po_check$unstable), "of", nrow(po_check),
+    "coefficients vary more across cut-points than their own size.\n")
+print(head(po_check, 8))
+
+ord_plot <- ord_coef %>%
+  filter(kind == "predictor") %>%
+  # Ranked by evidence (|t|), not by raw size: a sparse category such as
+  # "Retired" produces a huge coefficient with a confidence interval three
+  # orders of magnitude wide, which would otherwise top the chart.
+  slice_max(abs(t_value), n = 14) %>%
+  ggplot(aes(x = odds_ratio, y = fct_reorder(term, odds_ratio))) +
+  geom_vline(xintercept = 1, colour = "grey60") +
+  geom_pointrange(aes(xmin = conf_low, xmax = conf_high), colour = PALETTE[1]) +
+  scale_x_log10() +
+  labs(title = "What predicts trust in AI accuracy",
+       subtitle = "Odds ratios with 95% CI, 14 best-evidenced effects (log scale)",
+       x = "Odds ratio (>1 = more trusting)", y = NULL,
+       caption = paste0("Reference levels: ",
+                        levels(ord_data$region)[1], " (region), ",
+                        levels(ord_data$ai_usage)[1], " (AI usage), ",
+                        levels(ord_data$dev_type)[1], " (role). ",
+                        "Stack Overflow Developer Survey 2025"))
+save_fig(ord_plot, "22_ordinal_trust_effects", width = 9.5, height = 6)
+
 # --- Save the fitted models so the report does not refit them --------------
-saveRDS(list(lm = fit_lm, glm = fit_glm, rf = fit_rf,
+saveRDS(list(lm = fit_lm, glm = fit_glm, rf = fit_rf, ordinal = fit_ord,
              comparison = comparison, test_n = nrow(test),
+             bp_test = bp, ordinal_n = nrow(ord_data),
              thresholds = c(logistic = glm_cut, rf = rf_cut)),
         file.path(PATHS$models, "models.rds"))
 

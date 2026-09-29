@@ -1,0 +1,47 @@
+term,mean_estimate,sd_estimate,unstable
+dev_typeRetired,6.5638,8.7727,TRUE
+dev_typeSystem administrator,1.157,0.8372,FALSE
+dev_typeAI/ML engineer,0.8402,0.524,FALSE
+ai_usageWeekly,1.4454,0.5067,FALSE
+dev_typeCybersecurity or InfoSec professional,0.7196,0.4485,FALSE
+"dev_typeSenior executive (C-suite, VP, etc.)",0.2885,0.4452,TRUE
+dev_typeOther (please specify):,0.3466,0.3655,TRUE
+"dev_typeDeveloper, game or graphics",0.4083,0.2953,FALSE
+dev_typeProject manager,0.9113,0.287,FALSE
+dev_typeData scientist,0.5016,0.2552,FALSE
+dev_typeEngineering manager,0.5268,0.2462,FALSE
+dev_typeOther role,0.6278,0.242,FALSE
+ai_usageMonthly/rarely,0.7539,0.2413,FALSE
+dev_typeStudent,0.3853,0.2228,FALSE
+dev_typeDevOps engineer or professional,0.2859,0.2173,FALSE
+"dev_typeFounder, technology or otherwise",1.0293,0.2151,FALSE
+regionOther,-0.3083,0.2136,FALSE
+regionNorth America,-1.0959,0.207,FALSE
+dev_typeCloud infrastructure engineer,0.1152,0.1901,TRUE
+dev_typeData engineer,0.522,0.1769,FALSE
+"dev_typeDeveloper, desktop or enterprise applications",0.6127,0.1735,FALSE
+regionAsia & Middle East,0.1384,0.1715,TRUE
+"dev_typeDeveloper, front-end",0.5922,0.1671,FALSE
+educationDoctorate/Professional,0.0782,0.1628,TRUE
+"dev_typeDeveloper, mobile",0.568,0.1443,FALSE
+regionOceania,-1.234,0.1442,FALSE
+"dev_typeDeveloper, back-end",0.359,0.1384,FALSE
+"dev_typeArchitect, software or solutions",0.5287,0.1366,FALSE
+regionEurope,-1.0216,0.1347,FALSE
+regionLatin America,-0.3312,0.1333,FALSE
+"dev_typeDeveloper, full-stack",0.4418,0.1302,FALSE
+"dev_typeDeveloper, embedded applications or devices",0.2171,0.1219,FALSE
+dev_typeData or business analyst,1.0995,0.1133,FALSE
+ai_usageDaily,2.3486,0.1055,FALSE
+educationBachelor's,0.0811,0.0982,TRUE
+org_sizeLarge (1000+),0.0178,0.0898,TRUE
+remote_workRemote,0.1312,0.0882,FALSE
+remote_workHybrid,0.1342,0.0795,FALSE
+remote_workIn-person,0.2513,0.0639,FALSE
+org_sizeMedium (20-999),-0.0058,0.0624,TRUE
+"dev_typeDeveloper, QA or test",0.758,0.054,FALSE
+n_languages,-0.0344,0.0348,TRUE
+educationMaster's,0.209,0.0163,FALSE
+job_sat,0.0353,0.0148,FALSE
+years_code,-0.0287,0.006,FALSE
+age_numeric,0.041,0.0056,FALSE

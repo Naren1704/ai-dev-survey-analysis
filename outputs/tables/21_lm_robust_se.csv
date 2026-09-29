@@ -1,0 +1,45 @@
+term,estimate,se_classical,se_robust,p_classical,p_robust,se_ratio,flips_at_5pct
+(Intercept),8.5662,0.069,0.0861,0,0,1.2472,FALSE
+years_code,0.0177,9e-4,9e-4,0,0,1.0119,FALSE
+age_numeric,0.0068,9e-4,0.001,0,0,1.0359,FALSE
+educationBachelor's,0.1124,0.0155,0.0164,0,0,1.0569,FALSE
+educationMaster's,0.1792,0.0169,0.0175,0,0,1.0331,FALSE
+educationDoctorate/Professional,0.2669,0.0285,0.0271,0,0,0.9508,FALSE
+regionAsia & Middle East,0.283,0.0468,0.072,0,1e-4,1.5397,FALSE
+regionEurope,1.0427,0.0441,0.0676,0,0,1.5345,FALSE
+regionLatin America,0.3208,0.0498,0.0731,0,0,1.4672,FALSE
+regionNorth America,1.7128,0.0447,0.0676,0,0,1.5108,FALSE
+regionOceania,1.3287,0.0535,0.0698,0,0,1.3059,FALSE
+regionOther,0.4334,0.0579,0.0857,0,0,1.4818,FALSE
+remote_workHybrid,0.0177,0.018,0.0168,0.3242,0.2911,0.9339,FALSE
+remote_workIn-person,-0.2051,0.022,0.0224,0,0,1.0159,FALSE
+remote_workRemote,0.0238,0.0186,0.0185,0.2025,0.1981,0.9903,FALSE
+org_sizeMedium (20-999),0.264,0.0158,0.0178,0,0,1.1273,FALSE
+org_sizeLarge (1000+),0.4187,0.0172,0.0185,0,0,1.0792,FALSE
+dev_typeAI/ML engineer,0.6835,0.0605,0.0634,0,0,1.0479,FALSE
+"dev_typeArchitect, software or solutions",0.6237,0.0456,0.0449,0,0,0.9854,FALSE
+dev_typeCloud infrastructure engineer,0.7493,0.0662,0.0563,0,0,0.8505,FALSE
+dev_typeCybersecurity or InfoSec professional,0.6369,0.0734,0.0768,0,0,1.0462,FALSE
+dev_typeData engineer,0.4715,0.0549,0.0556,0,0,1.0125,FALSE
+dev_typeData or business analyst,0.0581,0.0778,0.0788,0.4547,0.4604,1.0128,FALSE
+dev_typeData scientist,0.5116,0.0597,0.0562,0,0,0.9403,FALSE
+"dev_typeDeveloper, back-end",0.5208,0.0424,0.0428,0,0,1.0081,FALSE
+"dev_typeDeveloper, desktop or enterprise applications",0.3276,0.0472,0.0466,0,0,0.9867,FALSE
+"dev_typeDeveloper, embedded applications or devices",0.4722,0.0498,0.0471,0,0,0.9447,FALSE
+"dev_typeDeveloper, front-end",0.3743,0.0482,0.0508,0,0,1.0542,FALSE
+"dev_typeDeveloper, full-stack",0.4447,0.0415,0.0416,0,0,1.0022,FALSE
+"dev_typeDeveloper, game or graphics",0.4297,0.0754,0.0706,0,0,0.9365,FALSE
+"dev_typeDeveloper, mobile",0.4448,0.0519,0.0546,0,0,1.0517,FALSE
+"dev_typeDeveloper, QA or test",0.148,0.0748,0.0894,0.0479,0.0979,1.195,TRUE
+dev_typeDevOps engineer or professional,0.5314,0.0512,0.0507,0,0,0.9898,FALSE
+dev_typeEngineering manager,0.803,0.0511,0.0478,0,0,0.9352,FALSE
+"dev_typeFounder, technology or otherwise",0.7133,0.0835,0.0963,0,0,1.1532,FALSE
+dev_typeOther (please specify):,0.3506,0.0518,0.0524,0,0,1.0106,FALSE
+dev_typeProject manager,0.4938,0.0843,0.0855,0,0,1.0142,FALSE
+dev_typeRetired,-0.8803,0.3404,0.927,0.0097,0.3423,2.7234,TRUE
+"dev_typeSenior executive (C-suite, VP, etc.)",0.8819,0.0636,0.068,0,0,1.0693,FALSE
+dev_typeStudent,-0.585,0.0804,0.0969,0,0,1.206,FALSE
+dev_typeSystem administrator,0.1686,0.0704,0.0725,0.0167,0.0201,1.0302,FALSE
+dev_typeOther role,0.4741,0.0515,0.0501,0,0,0.973,FALSE
+ai_user,0.0176,0.0147,0.0129,0.2311,0.1709,0.8745,FALSE
+n_languages,0.001,0.002,0.0024,0.6251,0.6844,1.2019,FALSE

@@ -1,0 +1,45 @@
+term,complete_case,weighted,difference,pct_of_effect
+dev_typeData or business analyst,0.0581,0.0376,-0.0205,-35.3
+"dev_typeDeveloper, mobile",0.4448,0.4247,-0.0201,-4.5
+regionOther,0.4334,0.4153,-0.018,-4.2
+dev_typeProject manager,0.4938,0.4769,-0.0169,-3.4
+regionNorth America,1.7128,1.6969,-0.0159,-0.9
+regionOceania,1.3287,1.3143,-0.0144,-1.1
+"dev_typeDeveloper, QA or test",0.148,0.1336,-0.0144,-9.7
+regionLatin America,0.3208,0.3079,-0.0129,-4
+dev_typeSystem administrator,0.1686,0.1571,-0.0115,-6.8
+dev_typeStudent,-0.585,-0.5747,0.0103,-1.8
+dev_typeRetired,-0.8803,-0.8905,-0.0102,1.2
+org_sizeLarge (1000+),0.4187,0.4283,0.0096,2.3
+dev_typeAI/ML engineer,0.6835,0.6928,0.0092,1.4
+dev_typeOther (please specify):,0.3506,0.3419,-0.0087,-2.5
+regionEurope,1.0427,1.0351,-0.0076,-0.7
+"dev_typeDeveloper, full-stack",0.4447,0.4373,-0.0074,-1.7
+"dev_typeDeveloper, front-end",0.3743,0.3672,-0.0071,-1.9
+educationBachelor's,0.1124,0.1062,-0.0063,-5.6
+"dev_typeSenior executive (C-suite, VP, etc.)",0.8819,0.8875,0.0056,0.6
+dev_typeData scientist,0.5116,0.5069,-0.0048,-0.9
+dev_typeEngineering manager,0.803,0.8074,0.0044,0.5
+dev_typeOther role,0.4741,0.4703,-0.0038,-0.8
+(Intercept),8.5662,8.5697,0.0035,0
+dev_typeCloud infrastructure engineer,0.7493,0.7458,-0.0035,-0.5
+remote_workRemote,0.0238,0.0206,-0.0031,-13.2
+org_sizeMedium (20-999),0.264,0.2668,0.0029,1.1
+ai_user,0.0176,0.0205,0.0029,16.4
+"dev_typeDeveloper, back-end",0.5208,0.5182,-0.0026,-0.5
+dev_typeCybersecurity or InfoSec professional,0.6369,0.6391,0.0023,0.4
+dev_typeData engineer,0.4715,0.4692,-0.0023,-0.5
+dev_typeDevOps engineer or professional,0.5314,0.5292,-0.0022,-0.4
+"dev_typeFounder, technology or otherwise",0.7133,0.7113,-0.002,-0.3
+educationDoctorate/Professional,0.2669,0.2689,0.0019,0.7
+remote_workHybrid,0.0177,0.019,0.0013,7.3
+regionAsia & Middle East,0.283,0.2842,0.0012,0.4
+educationMaster's,0.1792,0.1783,-9e-4,-0.5
+remote_workIn-person,-0.2051,-0.2044,7e-4,-0.4
+"dev_typeArchitect, software or solutions",0.6237,0.6244,6e-4,0.1
+"dev_typeDeveloper, desktop or enterprise applications",0.3276,0.3282,6e-4,0.2
+"dev_typeDeveloper, embedded applications or devices",0.4722,0.4716,-6e-4,-0.1
+"dev_typeDeveloper, game or graphics",0.4297,0.4303,6e-4,0.1
+years_code,0.0177,0.0179,2e-4,1.3
+age_numeric,0.0068,0.0069,1e-4,1.3
+n_languages,0.001,9e-4,-1e-4,-6.2

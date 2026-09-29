@@ -7,8 +7,11 @@ required_packages <- c(
   "tidyverse",  # dplyr, ggplot2, readr, tidyr, stringr, forcats, purrr, broom
   "janitor",    # clean_names(), tabyl()
   "ranger",     # random forest
+  "sandwich",   # heteroskedasticity-robust standard errors
+  "lmtest",     # coeftest() for the robust-SE table
   "car",        # VIF / regression diagnostics
   "knitr",      # kable() tables
+  "MASS",       # ordinal (proportional-odds) logistic regression
   "rmarkdown"   # final report
 )
 

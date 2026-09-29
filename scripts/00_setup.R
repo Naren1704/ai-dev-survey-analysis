@@ -5,7 +5,8 @@
 #   Rscript scripts/00_setup.R
 # ---------------------------------------------------------------------------
 
-required_packages <- c("tidyverse", "janitor", "ranger", "car", "knitr", "rmarkdown")
+required_packages <- c("tidyverse", "janitor", "ranger", "car", "sandwich",
+                       "lmtest", "MASS", "knitr", "rmarkdown")
 missing <- setdiff(required_packages, rownames(installed.packages()))
 if (length(missing) > 0) {
   message("Installing: ", paste(missing, collapse = ", "))

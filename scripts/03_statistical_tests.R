@@ -191,9 +191,58 @@ results$h5 <- tibble(
 )
 
 # ===========================================================================
+# H6: Salary is not missing at random.
+#
+# Half the sample skips the compensation question, and every salary result
+# above is computed on complete cases only. If the people who answer differ
+# systematically from those who do not, those results are biased. This tests
+# whether they do.
+# ===========================================================================
+reported <- d %>%
+  mutate(reports_salary = as.integer(!is.na(comp_yearly)))
+
+cat("\nH6 - Who reports their salary?\n")
+cat("  response rate:", round(100 * mean(reported$reports_salary), 1), "%\n")
+
+by_region <- reported %>%
+  filter(!is.na(region)) %>%
+  count(region, reports_salary) %>%
+  pivot_wider(names_from = reports_salary, values_from = n, values_fill = 0) %>%
+  mutate(response_rate = round(100 * `1` / (`0` + `1`), 1)) %>%
+  arrange(desc(response_rate))
+print(by_region)
+save_table(by_region, "09c_salary_response_by_region")
+
+tab_missing <- by_region %>%
+  select(`0`, `1`) %>%
+  as.matrix()
+chi_missing <- chisq.test(tab_missing)
+cat("  chi-square across regions: p =", fmt_p(chi_missing$p.value),
+    " Cramer's V =", round(cramers_v(tab_missing), 3), "\n")
+
+# The same question for AI users, since AI use is the main exposure variable.
+ai_gap <- reported %>%
+  filter(!is.na(ai_user)) %>%
+  group_by(ai_user) %>%
+  summarise(response_rate = round(100 * mean(reports_salary), 1), n = n(),
+            .groups = "drop")
+print(ai_gap)
+save_table(ai_gap, "09d_salary_response_by_ai_use")
+
+results$h6 <- tibble(
+  hypothesis = "H6: Salary response rate depends on region (data not missing at random)",
+  test = "Chi-square test of independence",
+  statistic = unname(chi_missing$statistic),
+  df = unname(chi_missing$parameter),
+  p_value = chi_missing$p.value,
+  effect_size = paste0("Cramer's V = ", round(cramers_v(tab_missing), 3)),
+  n = sum(tab_missing)
+)
+
+# ===========================================================================
 # Summary table
 # ===========================================================================
-# Five independent families of tests, so p-values are adjusted (Holm) to keep
+# Six independent families of tests, so p-values are adjusted (Holm) to keep
 # the family-wise error rate at 5%.
 summary_tbl <- bind_rows(results) %>%
   mutate(

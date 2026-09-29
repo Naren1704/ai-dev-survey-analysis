@@ -89,3 +89,17 @@ best_threshold <- function(truth, prob) {
   })
   grid[which.max(j)]
 }
+
+#' Adjusted Rand index between two clusterings of the same points.
+#'
+#' 1 = identical partitions, 0 = no better than chance agreement. Used to test
+#' whether the k-means solution survives resampling.
+adjusted_rand <- function(a, b) {
+  tab <- table(a, b)
+  n <- sum(tab)
+  comb2 <- function(x) sum(choose(x, 2))
+  index     <- comb2(tab)
+  expected  <- comb2(rowSums(tab)) * comb2(colSums(tab)) / choose(n, 2)
+  maximum   <- (comb2(rowSums(tab)) + comb2(colSums(tab))) / 2
+  (index - expected) / (maximum - expected)
+}

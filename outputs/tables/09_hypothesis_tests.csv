@@ -6,3 +6,4 @@ H3: Compensation differs across education levels,One-way ANOVA on log(salary),82
 H4: Trust in AI accuracy depends on experience,Chi-square test of independence,465.754,4,< 0.001,Cramer's V = 0.124,30447,< 0.001,TRUE
 H4b: Trust changes monotonically with experience,Chi-square test for trend in proportions,403.735,1,< 0.001,NA,30447,< 0.001,TRUE
 H5: Job satisfaction differs for daily AI users,Wilcoxon rank-sum test,80974594,NA,< 0.001,rank-biserial r = 0.043,24918,< 0.001,TRUE
+H6: Salary response rate depends on region (data not missing at random),Chi-square test of independence,919.956,6,< 0.001,Cramer's V = 0.168,32507,< 0.001,TRUE

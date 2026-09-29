@@ -1,0 +1,10 @@
+term,gvif,df,gvif_scaled
+years_code,2.874,1,1.695
+age_numeric,2.851,1,1.688
+education,1.342,3,1.05
+region,1.334,6,1.024
+remote_work,1.203,3,1.031
+org_size,1.125,2,1.03
+dev_type,1.589,25,1.009
+ai_user,1.053,1,1.026
+n_languages,1.092,1,1.045

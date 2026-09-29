@@ -1,0 +1,46 @@
+term,odds_ratio,std.error,statistic,p.value,conf.low,conf.high
+(Intercept),2.7797,0.3295,3.103,0.0019,1.474,5.3734
+years_code,0.9632,0.0036,-10.3059,0,0.9564,0.9701
+age_numeric,1.0127,0.0037,3.3837,7e-4,1.0054,1.0202
+educationBachelor's,0.9627,0.0605,-0.6279,0.5301,0.8547,1.0834
+educationMaster's,1.0878,0.0659,1.2771,0.2016,0.9557,1.2376
+educationDoctorate/Professional,0.8104,0.1097,-1.916,0.0554,0.6546,1.0066
+regionAsia & Middle East,1.001,0.2277,0.0045,0.9964,0.6274,1.5368
+regionEurope,0.4848,0.2153,-3.363,8e-4,0.3105,0.7245
+regionLatin America,0.691,0.2406,-1.5364,0.1244,0.4234,1.0912
+regionNorth America,0.3765,0.2172,-4.4966,0,0.2403,0.565
+regionOceania,0.4857,0.2444,-2.9554,0.0031,0.2955,0.773
+regionOther,0.8365,0.2721,-0.656,0.5118,0.4855,1.4172
+remote_workHybrid,0.9376,0.0713,-0.9036,0.3662,0.8145,1.0773
+remote_workIn-person,0.7959,0.0852,-2.678,0.0074,0.6732,0.9404
+remote_workRemote,1.1083,0.0736,1.3969,0.1625,0.9586,1.2795
+org_sizeMedium (20-999),1.0188,0.0601,0.3097,0.7568,0.905,1.1457
+org_sizeLarge (1000+),1.0275,0.0656,0.4137,0.6791,0.9032,1.1683
+dev_typeAI/ML engineer,4.6422,0.3162,4.8553,0,2.5328,8.7979
+"dev_typeArchitect, software or solutions",2.5455,0.2166,4.3141,0,1.6535,3.8712
+dev_typeCloud infrastructure engineer,1.9553,0.3031,2.2124,0.0269,1.0865,3.5774
+dev_typeCybersecurity or InfoSec professional,1.6699,0.3617,1.4174,0.1564,0.8363,3.4801
+dev_typeData engineer,2.4496000000000002,0.2608,3.435,6e-4,1.4687,4.0915
+dev_typeData or business analyst,0.7089,0.3937,-0.874,0.3821,0.3307,1.5605
+dev_typeData scientist,2.8333,0.3075,3.3873,7e-4,1.5659,5.2499
+"dev_typeDeveloper, back-end",1.8024,0.2049,2.8756,0.004,1.1963,2.6755
+"dev_typeDeveloper, desktop or enterprise applications",1.0905,0.2128,0.4071,0.6839,0.7132,1.6453
+"dev_typeDeveloper, embedded applications or devices",1.0117,0.2184,0.0533,0.9575,0.6548,1.5437
+"dev_typeDeveloper, front-end",2.5273,0.228,4.0673,0,1.6076,3.9352
+"dev_typeDeveloper, full-stack",1.9506,0.2018,3.3104,9e-4,1.302,2.8777
+"dev_typeDeveloper, game or graphics",0.6988,0.2705,-1.3251,0.1851,0.41,1.1857
+"dev_typeDeveloper, mobile",2.0689,0.2352,3.0908,0.002,1.2986,3.2706
+"dev_typeDeveloper, QA or test",1.1149,0.3068,0.3546,0.7229,0.6134,2.0488
+dev_typeDevOps engineer or professional,1.9623,0.2421,2.7842,0.0054,1.2163,3.1474
+dev_typeEngineering manager,4.0684,0.2611,5.3739,0,2.4391,6.8037
+"dev_typeFounder, technology or otherwise",3.6293,0.4114,3.1332,0.0017,1.682,8.5701
+dev_typeOther (please specify):,1.6376,0.252,1.9576,0.0503,0.9967,2.6808
+dev_typeProject manager,3.0386,0.5255,2.115,0.0344,1.1674,9.5196
+"dev_typeSenior executive (C-suite, VP, etc.)",4.05,0.3215,4.3508,0,2.1857,7.7499
+dev_typeStudent,1.2909,0.3414,0.748,0.4544,0.6695,2.5665
+dev_typeSystem administrator,0.6037,0.4091,-1.2338,0.2173,0.2721,1.3644
+dev_typeOther role,1.4805,0.2526,1.5535,0.1203,0.9001,2.4268
+job_sat,1.0605,0.0115,5.1252,0,1.0369,1.0846
+n_languages,1.0343,0.0079,4.2791,0,1.0185,1.0505
+ai_threatI'm not sure,1.4398,0.0586,6.216,0,1.2845,1.6166
+ai_threatYes,1.6374,0.0734,6.7169,0,1.4202,1.8939

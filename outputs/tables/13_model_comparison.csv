@@ -1,0 +1,4 @@
+model,threshold,accuracy,precision,recall,f1,auc,cv_auc,tp,fp,tn,fn
+Logistic regression,0.83,0.558,0.884,0.5241,0.6581,0.6563,0.6632,2043,268,637,1855
+Random forest,0.79,0.6075,0.855,0.6219,0.72,0.6341,0.6377,2424,411,494,1474
+Majority-class baseline,NA,0.8116,NA,NA,NA,0.5,NA,NA,NA,NA,NA

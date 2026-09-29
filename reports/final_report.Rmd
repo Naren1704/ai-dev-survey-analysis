@@ -83,7 +83,12 @@ med_non  <- median(d$comp_model[d$ai_user == 0], na.rm = TRUE)
 5. **Adoption is hard to predict from professional attributes.** The best model
    reaches AUC `r max(comp$cv_auc, na.rm = TRUE)` (5-fold CV) — better than
    chance, far from decisive.
-6. **Developers split into two clear camps.** k-means finds
+6. **The complaint is precision, not capability.**
+   `r scales::percent(read_out("20_ai_frustrations")$pct[1], 1)` name "AI
+   solutions that are almost right, but not quite" as a frustration, and
+   `r scales::percent(read_out("20_ai_frustrations")$pct[2], 1)` say debugging
+   AI-generated code is more time-consuming than writing it themselves.
+7. **Developers split into two clear camps.** k-means finds
    `r clustering$best_k` clusters: an AI-embracing group
    (`r prof$share[1]`% of respondents, `r scales::percent(prof$ai_daily[1], 1)`
    daily users) and a sceptical group (`r prof$share[2]`%,
@@ -176,9 +181,25 @@ fig("09_top_languages")
 fig("10_top_ai_models")
 ```
 
-```{r words, fig.cap="Free-text themes"}
+```{r frustrations, fig.cap="Reported frustrations with AI tools"}
+fig("10b_ai_frustrations")
+```
+
+## What developers think survives AI
+
+The survey ends with an open question: *"Looking ahead 3-5 years, what skills
+do you believe will remain valuable for developers even as AI tools become
+more capable?"* A simple word count over the
+`r format(sum(!is.na(d$ai_open) & stringr::str_length(d$ai_open) > 20), big.mark = ",")`
+free-text answers shows what people name.
+
+```{r words, fig.cap="Skills expected to remain valuable"}
 fig("11_ai_open_words")
 ```
+
+The answers cluster on judgement rather than syntax: understanding, problem
+solving, architecture, design and debugging. That matches the trust results —
+developers delegate typing, not deciding.
 
 ## Correlations
 

@@ -113,11 +113,13 @@ trust_plot <- trust_exp %>%
   ggplot(aes(x = exp_bucket, y = pct, fill = ai_trust)) +
   geom_col() +
   scale_y_continuous(labels = scales::percent) +
-  scale_fill_manual(values = rev(PALETTE[1:5]), name = NULL) +
+  # A diverging red-to-green scale, so the ordinal meaning is readable without
+  # consulting the legend.
+  scale_fill_brewer(palette = "RdYlGn", name = NULL) +
   labs(title = "Trust in AI accuracy by experience",
        x = "Years of coding experience", y = "Share of respondents",
        caption = "Stack Overflow Developer Survey 2025") +
-  guides(fill = guide_legend(nrow = 2))
+  guides(fill = guide_legend(nrow = 2, byrow = TRUE, reverse = TRUE))
 save_fig(trust_plot, "06_trust_by_experience")
 
 # Sentiment vs trust: the two AI attitude scales are related but not identical.
@@ -185,7 +187,28 @@ model_plot <- top_models %>%
        caption = "Multi-select question; Stack Overflow Developer Survey 2025")
 save_fig(model_plot, "10_top_ai_models")
 
-# --- Free text: what developers say about AI -------------------------------
+# --- What frustrates developers about AI tools -----------------------------
+# AIFrustration is a "select all that apply" question, so it needs splitting
+# before it can be counted.
+frustrations <- split_multiselect(d, ai_frustration) %>%
+  count(ai_frustration, sort = TRUE) %>%
+  mutate(pct = n / sum(!is.na(d$ai_frustration)))
+save_table(frustrations, "20_ai_frustrations")
+
+frustration_plot <- frustrations %>%
+  slice_head(n = 12) %>%
+  ggplot(aes(x = pct, y = fct_reorder(str_wrap(ai_frustration, 45), pct))) +
+  geom_col(fill = PALETTE[4]) +
+  scale_x_continuous(labels = scales::percent) +
+  labs(title = "What frustrates developers about AI tools",
+       subtitle = "Share of respondents who answered the question (select all that apply)",
+       x = "Share of respondents", y = NULL,
+       caption = "Stack Overflow Developer Survey 2025")
+save_fig(frustration_plot, "10b_ai_frustrations", height = 6)
+
+# --- Free text: which skills survive better AI? ----------------------------
+# AIOpen asks: "Looking ahead 3-5 years, what skills do you believe will remain
+# valuable for developers even as AI tools become more capable?"
 # A deliberately simple bag-of-words count (no extra text-mining dependency):
 # split on non-letters, drop stop words, count.
 STOPWORDS <- c(
@@ -218,9 +241,9 @@ save_table(ai_words, "08_ai_open_top_words")
 words_plot <- ai_words %>%
   ggplot(aes(x = n, y = fct_reorder(word, n))) +
   geom_col(fill = PALETTE[6]) +
-  labs(title = "What developers write about AI (free text)",
-       subtitle = paste0("Most frequent words in the open AI comment field; n = ",
-                         length(comments), " comments"),
+  labs(title = "Skills developers expect to stay valuable as AI improves",
+       subtitle = paste0("Most frequent words in the free-text answers; n = ",
+                         length(comments), " responses"),
        x = "Occurrences", y = NULL,
        caption = "Stop words removed; Stack Overflow Developer Survey 2025")
 save_fig(words_plot, "11_ai_open_words", height = 6.5)

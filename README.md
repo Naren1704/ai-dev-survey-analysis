@@ -43,7 +43,12 @@ and unsupervised clustering — ending in a rendered R Markdown report.
 5. **Adoption is hard to predict.** Logistic regression reaches **AUC 0.663**
    (5-fold CV) and the random forest 0.638 — both beat chance, neither is
    decisive. Adoption is driven by factors the survey does not capture.
-6. **Two clear camps.** k-means (k chosen by silhouette) splits developers into
+6. **The complaint is precision, not capability.** 67% name *"AI solutions that
+   are almost right, but not quite"* as their main frustration and 46% say
+   debugging AI-generated code costs more time than it saves. Asked which
+   skills survive better AI, the free-text answers converge on understanding,
+   problem solving, architecture and debugging — judgement, not typing.
+7. **Two clear camps.** k-means (k chosen by silhouette) splits developers into
    an **AI-embracing** cluster (54.5%, 87% daily users, mean trust 3.5/5) and a
    **sceptical** cluster (45.5%, 24% daily users, mean trust 2.0/5). The
    sceptics have the higher median salary — $83,668 vs $73,686 — even though
@@ -67,7 +72,7 @@ Or step by step:
 
 ```bash
 Rscript scripts/01_data_cleaning.R      # raw CSV  -> data/processed/survey_clean.rds
-Rscript scripts/02_eda.R                # 11 figures, 7 summary tables
+Rscript scripts/02_eda.R                # 12 figures, 8 summary tables
 Rscript scripts/03_statistical_tests.R  # 7 hypothesis tests, Holm-adjusted
 Rscript scripts/04_modeling.R           # lm + diagnostics, glm vs random forest
 Rscript scripts/05_clustering.R         # PCA + k-means personas
@@ -98,8 +103,8 @@ ai-dev-survey-analysis/
 │   ├── processed/            # survey_clean.rds / .csv (regenerated)
 │   └── sample/               # 500-row sample of the cleaned data (committed)
 ├── outputs/
-│   ├── figures/              # 21 PNGs
-│   ├── tables/               # 19 CSV result tables
+│   ├── figures/              # 22 PNGs
+│   ├── tables/               # 20 CSV result tables
 │   └── models/               # fitted model objects (not committed)
 └── reports/
     ├── final_report.Rmd

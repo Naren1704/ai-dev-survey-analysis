@@ -1,0 +1,10 @@
+variable,PC1,PC2,PC3
+years_code,0.083,-0.692,-0.047
+age_numeric,0.02,-0.698,0.08
+job_sat,-0.076,-0.16,-0.389
+n_languages,0.066,0.043,-0.829
+ai_sent_score,-0.52,-0.065,0.028
+ai_trust_score,-0.503,-0.026,0.152
+ai_daily,-0.438,0.021,-0.114
+ai_agent_user,-0.284,-0.018,-0.335
+ai_complex_ok,-0.432,-0.031,0.062

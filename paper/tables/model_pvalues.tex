@@ -1,0 +1,12 @@
+\begin{tabular}{lccccc}
+\toprule
+\textbf{Model} & \textbf{AUC [95\% CI]} & $\boldsymbol{\Delta}$\textbf{AUC} & \textbf{DeLong $p$} & \textbf{Holm $p$} & \textbf{McNemar $p$} \\
+\midrule
+Logistic regression & 0.656 [0.637, 0.676] & ref. & -- & -- & -- \\
+Random forest & 0.634 [0.614, 0.654] & -0.022 & 0.010 & 0.041 & 0.003 \\
+XGBoost & 0.666 [0.647, 0.685] & +0.010 & 0.042 & 0.127 & 0.042 \\
+LightGBM & 0.657 [0.638, 0.676] & +0.001 & 0.870 & 0.870 & 0.427 \\
+MLP (nnet) & 0.634 [0.615, 0.654] & -0.022 & 0.002 & 0.010 & $<0.001$ \\
+Ensemble (soft vote) & 0.665 [0.646, 0.684] & +0.008 & 0.057 & 0.127 & $<0.001$ \\
+\bottomrule
+\end{tabular}

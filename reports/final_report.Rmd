@@ -50,14 +50,16 @@ them, who trusts them, and whether any of it shows up in pay.
 | RQ1 | Does AI tool adoption depend on developer role and experience? | Chi-square, logistic regression |
 | RQ2 | Do AI users earn more than non-users? | Welch t-test, Wilcoxon, linear regression |
 | RQ3 | Does trust in AI accuracy change with experience? | Chi-square, test for trend |
-| RQ4 | Can AI adoption be predicted from professional attributes? | Logistic regression vs random forest |
-| RQ5 | Are there distinct developer "personas" in AI attitudes? | PCA, k-means |
+| RQ4 | Can AI adoption be predicted from professional attributes? | Six-model benchmark with ROC/AUC, DeLong and McNemar tests |
+| RQ5 | Are there distinct developer "personas" in AI attitudes? | k-means, silhouette, resampling stability |
 
 ## Key findings
 
 ```{r headline, include=FALSE}
 adopt <- read_out("03_adoption_by_experience")
 comp  <- read_out("13_model_comparison")
+bench_path <- file.path("paper", "tables", "benchmark_metrics.csv")
+bench <- if (file.exists(bench_path)) readr::read_csv(bench_path, show_col_types = FALSE) else NULL
 prof  <- read_out("18_cluster_profiles")
 val   <- read_out("19_cluster_validation")
 med_user <- median(d$comp_model[d$ai_user == 1], na.rm = TRUE)
@@ -75,19 +77,19 @@ med_non  <- median(d$comp_model[d$ai_user == 0], na.rm = TRUE)
    those with 20+ years (chi-square test for trend, p < 0.001).
 3. **AI users earn slightly *less*, not more.** Median
    `r scales::dollar(med_user)` versus `r scales::dollar(med_non)`
-   (Cohen's d = -0.16). The gap is a small effect and is explained by
-   experience and region rather than by AI use itself.
+   (Cohen's d = -0.16). The gap is a small effect and is not present once
+   experience, region and the other covariates are controlled.
 4. **Pay is mostly explained by geography, experience and education.** The
    linear model reaches R² = `r round(broom::glance(models$lm)$r.squared, 3)`;
    AI use contributes almost nothing once those are in the model.
-5. **Adoption is hard to predict from professional attributes.** The best model
-   reaches AUC `r max(comp$cv_auc, na.rm = TRUE)` (5-fold CV) — better than
-   chance, far from decisive.
+5. **Adoption is hard to predict from professional attributes.**
+   `r if (!is.null(bench)) paste0("Across ", nrow(bench), " benchmarked models the best held-out AUC is ", round(max(bench$auc), 3), " (", bench$model[which.max(bench$auc)], "), and no model is reliably better than logistic regression after Holm correction.") else paste0("The best of the two baseline models reaches a 5-fold CV AUC of ", round(max(comp$cv_auc, na.rm = TRUE), 3), ". Run scripts/06_paper_benchmark.R for the six-model benchmark.")`
 6. **Trust tracks usage, not seniority in isolation.** An ordinal
    (proportional-odds) model on the full five-point trust scale puts daily
    users at
    `r round(read_out("22_ordinal_trust_model") %>% dplyr::filter(term == "ai_usageDaily") %>% dplyr::pull(odds_ratio), 1)`x
-   the odds of higher trust versus never-users, while each additional year of
+   the odds of higher trust versus respondents who do not currently use AI
+   tools, while each additional year of
    experience multiplies those odds by
    `r round(read_out("22_ordinal_trust_model") %>% dplyr::filter(term == "years_code") %>% dplyr::pull(odds_ratio), 3)`.
 7. **The complaint is precision, not capability.**
@@ -95,7 +97,7 @@ med_non  <- median(d$comp_model[d$ai_user == 0], na.rm = TRUE)
    solutions that are almost right, but not quite" as a frustration, and
    `r scales::percent(read_out("20_ai_frustrations")$pct[2], 1)` say debugging
    AI-generated code is more time-consuming than writing it themselves.
-8. **Developers split into two clear camps.** k-means finds
+8. **Developers split into two overlapping camps.** k-means finds
    `r clustering$best_k` clusters: an AI-embracing group
    (`r prof$share[1]`% of respondents, `r scales::percent(prof$ai_daily[1], 1)`
    daily users) and a sceptical group (`r prof$share[2]`%,
@@ -109,7 +111,8 @@ med_non  <- median(d$comp_model[d$ai_user == 0], na.rm = TRUE)
 Stack Overflow Annual Developer Survey 2025, CC BY-SA 4.0,
 <https://survey.stackoverflow.co/>. The raw file holds 172 columns; the
 cleaning script keeps `r ncol(d)` after feature engineering and restricts the
-sample to people who write code professionally.
+sample to respondents who are developers by profession or who write code as
+part of their work.
 
 # Data preparation
 
@@ -119,7 +122,7 @@ The raw export needs real work before it can be analysed:
   "More than 50 years"; `Age` is a bucket, converted to a midpoint for
   modelling while the ordered factor is kept for plots.
 * **Collapsing.** Education (8 levels), organisation size (9), and country
-  (180+) are collapsed to 4, 3 and 6 categories. Rare roles and industries are
+  (175) are collapsed to 4, 3 and 7 categories. Rare roles and industries are
   lumped with `fct_lump_min()`. Without this, most tests would be driven by
   categories with a handful of respondents.
 * **Salary.** `ConvertedCompYearly` contains values from $1 to tens of millions.
@@ -344,10 +347,43 @@ fig("16_rf_importance")
 
 The two models land close together, which is itself the finding: the
 relationship between professional attributes and AI adoption is mostly
-additive, so the random forest's extra flexibility buys little. Both beat the
-majority-class baseline, but neither is a strong classifier — adoption is
-driven by things the survey does not measure (team policy, employer tooling,
-personal taste).
+additive, so the random forest's extra flexibility buys little. Both beat
+chance on AUC, but neither is a strong classifier: the ten professional
+attributes used here do not identify which individual adopts AI tools.
+
+## Six-model benchmark
+
+The same split and predictors are extended to six models by
+`scripts/06_paper_benchmark.R`. Decision thresholds come from out-of-fold
+training predictions (Youden's J). Accuracy is not used to rank the models,
+because the tuned thresholds put every model below the majority-class baseline.
+
+```{r benchmark-tbl}
+bp <- file.path("paper", "tables", "benchmark_metrics.csv")
+pp <- file.path("paper", "tables", "benchmark_pvalues.csv")
+if (file.exists(bp) && file.exists(pp)) {
+  kable(readr::read_csv(bp, show_col_types = FALSE) %>%
+          dplyr::select(model, threshold, accuracy, precision, recall,
+                        specificity, f1, mcc, kappa, auc, cv_auc) %>%
+          dplyr::mutate(dplyr::across(where(is.numeric), ~ round(.x, 3))),
+        caption = "Six-model benchmark on the held-out test set")
+  kable(readr::read_csv(pp, show_col_types = FALSE) %>%
+          dplyr::mutate(dplyr::across(where(is.numeric), ~ signif(.x, 3))),
+        caption = "Each model against logistic regression: AUC with DeLong 95% CI, DeLong, McNemar and Holm-adjusted p-values")
+} else {
+  cat("Run `Rscript scripts/06_paper_benchmark.R` to generate the benchmark tables.")
+}
+```
+
+```{r benchmark-roc, fig.cap="ROC curves of the six benchmarked models"}
+rp <- file.path("paper", "figures", "roc_comparison.png")
+if (file.exists(rp)) knitr::include_graphics(normalizePath(rp))
+```
+
+```{r benchmark-cm, fig.cap="Row-normalised confusion matrices on the held-out test set"}
+cp <- file.path("paper", "figures", "confusion_matrices.png")
+if (file.exists(cp)) knitr::include_graphics(normalizePath(cp))
+```
 
 ## What predicts trust in AI accuracy?
 
@@ -374,7 +410,7 @@ fig("22_ordinal_trust_effects")
 
 Usage dominates everything else: daily users have
 `r round(ord$odds_ratio[ord$term == "ai_usageDaily"], 1)`x the odds of a higher
-trust rating than people who never use AI tools. Experience pushes the other
+trust rating than people who do not currently use AI tools. Experience pushes the other
 way — each additional year of coding multiplies the odds by
 `r round(ord$odds_ratio[ord$term == "years_code"], 3)`, which compounds to
 roughly `r round(100 * (1 - ord$odds_ratio[ord$term == "years_code"]^10), 0)`%
@@ -387,15 +423,19 @@ kable(head(po, 8),
       caption = "Proportional-odds check: coefficients refitted at each of the four cut-points.")
 ```
 
-The assumption mostly holds: `r sum(po$unstable)` of `r nrow(po)` coefficients
-vary more across cut-points than their own size, and they are sparse
-role categories (retired developers, senior executives) rather than the
-variables the conclusions rest on.
+The assumption holds for the terms the conclusions rest on: `r sum(po$unstable)`
+of `r nrow(po)` coefficients vary more across cut-points than their own size.
+Four are sparse role categories (retired, senior executives, "other", cloud
+infrastructure engineers) and six are terms with near-zero average effect
+(Asia and Middle East, bachelor's, doctorate, medium and large organisations,
+language count). Usage frequency, years of coding, age and the North America,
+Europe and Oceania contrasts are stable.
 
 # Developer personas
 
-PCA and k-means on the AI-attitude and experience variables, with *k* chosen
-by average silhouette width.
+k-means on nine standardised AI-attitude and experience variables, with *k*
+chosen by average silhouette width. PCA is used only to display the structure,
+not as input to k-means.
 
 ```{r scree, fig.cap="PCA scree plot"}
 fig("17_pca_scree")
@@ -471,7 +511,7 @@ capture something real rather than an artefact of the algorithm.
   employer, seniority and country.
 * **Converted compensation.** `ConvertedCompYearly` depends on exchange rates
   and self-reported figures, and the currency conversion date is not exposed.
-* **Collapsed categories.** Grouping 180 countries into 6 regions and 8
+* **Collapsed categories.** Grouping 175 countries into 7 regions and 8
   education levels into 4 loses real variation. It trades precision for models
   that fit and tests that have adequate cell counts.
 * **Large n.** Statistical significance is nearly guaranteed at this sample
@@ -480,9 +520,10 @@ capture something real rather than an artefact of the algorithm.
   weighting corrects for reporting patterns that the *observed* predictors
   explain. If people hide their salary for reasons unrelated to region, role
   or experience — being unusually badly paid, say — that bias remains.
-* **Prediction is weak by design of the data.** AUC 0.66 for adoption is an
-  honest ceiling given what the survey asks: employer policy, team norms and
-  tooling mandates are the obvious missing predictors.
+* **Prediction is weak.** The best AUC for adoption is 0.666 across six models,
+  and no model is reliably better than logistic regression after Holm
+  correction; the ten predictors used here carry little information about
+  which individual adopts AI tools.
 
 # Reproducing this report
 

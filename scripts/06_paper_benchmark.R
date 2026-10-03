@@ -1,9 +1,9 @@
 # ---------------------------------------------------------------------------
 # 06 - Paper benchmark: recent models, confusion matrices, ROC, p-values
 #
-# Put this file in the REPO ROOT and run:
+# Run from the repository root (after scripts/01_data_cleaning.R):
 #
-#   Rscript 06_paper_benchmark.R
+#   Rscript scripts/06_paper_benchmark.R
 #
 # It re-uses the project's own data (data/processed/survey_clean.rds), the same
 # 75/25 stratified split and the same predictors as scripts/04_modeling.R, and
@@ -16,7 +16,7 @@
 #   paper/figures/*.png     ROC curves, confusion matrices, copied EDA figures
 #   paper/tables/*.tex      LaTeX tables + macros.tex (numbers used in the text)
 #   paper/tables/*.csv      the same results as CSV
-# Upload the whole  paper/  folder (plus main.tex) to Overleaf.
+# Upload the whole  paper/  folder (it contains main.tex) to Overleaf.
 # ---------------------------------------------------------------------------
 
 suppressPackageStartupMessages(library(tidyverse))

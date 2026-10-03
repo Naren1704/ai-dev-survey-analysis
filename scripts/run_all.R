@@ -10,7 +10,8 @@ steps <- c(
   "scripts/02_eda.R",
   "scripts/03_statistical_tests.R",
   "scripts/04_modeling.R",
-  "scripts/05_clustering.R"
+  "scripts/05_clustering.R",
+  "scripts/06_paper_benchmark.R"   # six-model benchmark; writes paper/tables, paper/figures
 )
 
 for (s in steps) {

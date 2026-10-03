@@ -6,13 +6,26 @@
 # ---------------------------------------------------------------------------
 
 required_packages <- c("tidyverse", "janitor", "ranger", "car", "sandwich",
-                       "lmtest", "MASS", "knitr", "rmarkdown")
+                       "lmtest", "MASS", "knitr", "rmarkdown",
+                       "cluster", "nnet", "pROC")
 missing <- setdiff(required_packages, rownames(installed.packages()))
 if (length(missing) > 0) {
   message("Installing: ", paste(missing, collapse = ", "))
   install.packages(missing, repos = "https://cloud.r-project.org")
 } else {
   message("All packages already installed.")
+}
+
+# Optional boosting packages for scripts/06_paper_benchmark.R. The benchmark
+# skips a model automatically if its package cannot be installed (LightGBM in
+# particular can fail on Windows without Rtools), so a failure here is not fatal.
+for (pkg in c("xgboost", "lightgbm")) {
+  if (!requireNamespace(pkg, quietly = TRUE)) {
+    try(install.packages(pkg, repos = "https://cloud.r-project.org"), silent = TRUE)
+    if (!requireNamespace(pkg, quietly = TRUE))
+      message("NOTE: optional package '", pkg, "' could not be installed; ",
+              "the benchmark will skip that model.")
+  }
 }
 
 # Raw data ----------------------------------------------------------------
